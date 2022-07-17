@@ -1,0 +1,59 @@
+{
+  "name": "@bond-london/gatsby-transformer-video",
+  "version": "0.0.3",
+  "description": "Transform video files",
+  "repository": "https://github.com/bond-london/gatsby-transformer-video",
+  "author": "Nick Randell <nick.randell@bond.fi>",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "license": "MIT",
+  "files": [
+    "gatsby-node.js",
+    "dist"
+  ],
+  "keywords": [
+    "gatsby",
+    "gatsby-plugin"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "scripts": {
+    "prebuild": "rimraf dist",
+    "build": "tsc",
+    "dev": "tsc -w",
+    "format": "prettier --write \"**/*.{js,jsx,json,ts,tsx}\"",
+    "lint": "eslint --max-warnings 0 \"**/*.{js,jsx,ts,tsx}\""
+  },
+  "dependencies": {
+    "ffmpeg-static": "^5.0.2",
+    "ffprobe-static": "^3.1.0",
+    "fluent-ffmpeg": "^2.1.2",
+    "gatsby": "^4.18.1",
+    "gatsby-source-filesystem": "^4.18.1",
+    "throat": "^6.0.1"
+  },
+  "peerDependencies": {
+    "gatsby": "^4.x",
+    "gatsby-source-filesystem": "^4.x"
+  },
+  "devDependencies": {
+    "@types/ffmpeg-static": "^3.0.1",
+    "@types/ffprobe-static": "^2.0.1",
+    "@types/fluent-ffmpeg": "^2.1.20",
+    "@types/fs-extra": "^9.0.13",
+    "@types/react": "^18.0.15",
+    "@typescript-eslint/eslint-plugin": "^5.30.6",
+    "@typescript-eslint/parser": "^5.30.6",
+    "eslint": "^8.19.0",
+    "eslint-config-prettier": "^8.5.0",
+    "eslint-config-react-app": "^7.0.1",
+    "eslint-import-resolver-typescript": "^3.2.5",
+    "eslint-plugin-import": "^2.26.0",
+    "eslint-plugin-prettier": "^4.2.1",
+    "prettier": "^2.7.1",
+    "rimraf": "^3.0.2",
+    "typescript": "^4.7.4"
+  }
+}
