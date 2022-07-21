@@ -1,5 +1,5 @@
 import { join, basename } from "path";
-import { copy, ensureDir, rename } from "fs-extra";
+import { ensureDir, rename } from "fs-extra";
 
 import pathToFfmpeg from "ffmpeg-static";
 import { path as pathToFfprobe } from "ffprobe-static";
@@ -8,7 +8,7 @@ import ffmpeg, { FfprobeData } from "fluent-ffmpeg";
 import { FileSystemNode } from "gatsby-source-filesystem";
 import { NodePluginArgs, Reporter } from "gatsby";
 import { GatsbyVideoInformation } from "./types";
-const localCacheDir = "./.bondvideoassets";
+import { videoCache } from "./onPluginInit";
 
 function createCommandForVideo(videoPath: string) {
   const command = ffmpeg({ source: videoPath, logger: console });
@@ -127,8 +127,6 @@ export async function transformVideo(
   };
   const digest = createContentDigest(digestObject);
   const outputName = `${name}-${digest}${ext}`;
-  const cacheDir = join(process.cwd(), localCacheDir);
-  const cacheFile = join(cacheDir, outputName);
   const publicDir = join(process.cwd(), "public", "static", inputDigest);
   const publicFile = join(publicDir, outputName);
   const publicRelativeUrl = `${pathPrefix}/static/${inputDigest}/${outputName}`;
@@ -138,7 +136,7 @@ export async function transformVideo(
   reporter.verbose(`${label}: Transforming video`);
   await ensureDir(publicDir);
   try {
-    await copy(cacheFile, publicFile, { dereference: false });
+    await videoCache.getFromCache(outputName, publicFile);
     reporter.verbose(`${label}: Used already cached file`);
     return { publicFile, publicRelativeUrl };
   } catch (err) {
@@ -146,11 +144,10 @@ export async function transformVideo(
   }
 
   reporter.info(`${label}: Using ffmpeg to transform video ${inputFileName}`);
-  await ensureDir(cacheDir);
-  const tempCacheFile = join(cacheDir, `temp-${outputName}`);
-  await runFfmpeg(inputName, tempCacheFile, options, reporter, label);
-  await rename(tempCacheFile, cacheFile);
-  await copy(cacheFile, publicFile, { dereference: false });
+  const tempPublicFile = join(publicDir, `temp-${outputName}`);
+  await runFfmpeg(inputName, tempPublicFile, options, reporter, label);
+  await rename(tempPublicFile, publicFile);
+  await videoCache.addToCache(publicFile, outputName);
   reporter.info(`${label}: Used newly transformed file for ${inputFileName}`);
 
   return { publicFile, publicRelativeUrl };

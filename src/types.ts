@@ -15,3 +15,10 @@ export interface GatsbyTransformedVideo extends GatsbyVideoInformation {
   webm: string;
   poster: string;
 }
+
+export interface PluginOptions {
+  useRemoteCache: boolean;
+  remoteConnectionString?: string;
+  remoteContainer?: string;
+  videoCacheFolder: string;
+}
