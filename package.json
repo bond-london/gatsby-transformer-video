@@ -33,7 +33,7 @@
     "fluent-ffmpeg": "^2.1.2",
     "gatsby": "^4.18.1",
     "gatsby-source-filesystem": "^4.18.1",
-    "throat": "^6.0.1"
+    "gatsby-worker": "^1.19.0"
   },
   "peerDependencies": {
     "gatsby": "^4.x",

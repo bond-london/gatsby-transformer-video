@@ -7,7 +7,6 @@ import {
   GraphQLJSON,
   GraphQLNonNull,
 } from "gatsby/graphql";
-import { jobsQueue } from "./onPluginInit";
 import { createTransformedVideo } from "./transformer";
 import { TransformArgs } from "./types";
 
@@ -40,10 +39,7 @@ export function createSchemaCustomization(args: CreateSchemaCustomizationArgs) {
           source: Node,
           transformArgs: TransformArgs,
           context: IGatsbyResolverContext<Node, TransformArgs>
-        ) =>
-          jobsQueue(() =>
-            createTransformedVideo(source, transformArgs, context, args)
-          ),
+        ) => createTransformedVideo(source, transformArgs, context, args),
       },
     },
   });

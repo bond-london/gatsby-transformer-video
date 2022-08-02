@@ -1,11 +1,9 @@
 import { NodePluginArgs } from "gatsby";
-import throat from "throat";
 import { RemoteCache } from "./remoteCache";
 import { PluginOptions } from "./types";
 import { Cache } from "./cache";
 import { join } from "path";
 
-export const jobsQueue = throat(1);
 export let videoCache: Cache;
 
 export async function onPluginInit(

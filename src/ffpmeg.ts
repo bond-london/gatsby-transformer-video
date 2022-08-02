@@ -1,36 +1,22 @@
 import { join, basename } from "path";
 import { ensureDir, rename } from "fs-extra";
 
-import pathToFfmpeg from "ffmpeg-static";
-import { path as pathToFfprobe } from "ffprobe-static";
-
-import ffmpeg, { FfprobeData } from "fluent-ffmpeg";
 import { FileSystemNode } from "gatsby-source-filesystem";
-import { NodePluginArgs, Reporter } from "gatsby";
+import { NodePluginArgs } from "gatsby";
 import { GatsbyVideoInformation } from "./types";
 import { videoCache } from "./onPluginInit";
+import { WorkerPool } from "gatsby-worker";
 
-function createCommandForVideo(videoPath: string) {
-  const command = ffmpeg({ source: videoPath, logger: console });
-  command.setFfmpegPath(pathToFfmpeg);
-  command.setFfprobePath(pathToFfprobe);
-  return command;
-}
-
-async function getVideoData(videoPath: string): Promise<FfprobeData> {
-  const command = createCommandForVideo(videoPath);
-  return new Promise<FfprobeData>((resolve, reject) => {
-    command.ffprobe((err, data) => {
-      if (err) reject(err);
-      resolve(data);
-    });
-  });
-}
+const workerPool = new WorkerPool<typeof import("./worker")>(
+  require.resolve("./worker"),
+  { numWorkers: 1, silent: false }
+);
 
 export async function getVideoInformation(
   videoPath: string
 ): Promise<GatsbyVideoInformation> {
-  const data = await getVideoData(videoPath);
+  const data = await workerPool.single.getVideoData(videoPath);
+  console.log("got data", data);
   const videoStream = data.streams.find((s) => s.codec_type === "video");
   const audioStream = data.streams.find((s) => s.codec_type === "audio");
   if (!videoStream) {
@@ -45,41 +31,6 @@ export async function getVideoInformation(
     duration: videoStream.duration,
     hasAudio: !!audioStream,
   };
-}
-
-interface ProgressInformation {
-  frames: number;
-  currentFps: number;
-  currentKbps: number;
-  targetSize: number;
-  timemark: number;
-  percent: number;
-}
-
-function runFfmpeg(
-  input: string,
-  output: string,
-  options: string[],
-  reporter: Reporter,
-  label: string
-) {
-  return new Promise<void>((resolve, reject) => {
-    let lastPercent = 0;
-    const command = createCommandForVideo(input)
-      .addOutputOption(options)
-      //   .on("start", console.log)
-      .on("error", reject)
-      .on("end", resolve)
-      .on("progress", (progress: ProgressInformation) => {
-        if (progress.percent > lastPercent + 10) {
-          const percent = Math.floor(progress.percent);
-          reporter.info(`${label}: Progress - ${percent}%`);
-          lastPercent = progress.percent;
-        }
-      })
-      .output(output);
-    command.run();
-  });
 }
 
 export function createScreenshotOptions() {
@@ -145,7 +96,7 @@ export async function transformVideo(
 
   reporter.info(`${label}: Using ffmpeg to transform video ${inputFileName}`);
   const tempPublicFile = join(publicDir, `temp-${outputName}`);
-  await runFfmpeg(inputName, tempPublicFile, options, reporter, label);
+  await workerPool.single.runFfmpeg(inputName, tempPublicFile, options, label);
   await rename(tempPublicFile, publicFile);
   await videoCache.addToCache(publicFile, outputName);
   reporter.info(`${label}: Used newly transformed file for ${inputFileName}`);
