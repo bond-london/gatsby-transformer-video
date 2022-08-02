@@ -7,16 +7,21 @@ import { GatsbyVideoInformation } from "./types";
 import { videoCache } from "./onPluginInit";
 import { WorkerPool } from "gatsby-worker";
 
-const workerPool = new WorkerPool<typeof import("./worker")>(
-  require.resolve("./worker"),
-  { numWorkers: 1, silent: false }
-);
+type FfmpegWorkerPool = WorkerPool<typeof import("./worker")>;
+function createWorker(): FfmpegWorkerPool {
+  const worker: FfmpegWorkerPool = new WorkerPool(require.resolve("./worker"), {
+    numWorkers: 1,
+    silent: false,
+  });
+  return worker;
+}
+
+const worker = createWorker();
 
 export async function getVideoInformation(
   videoPath: string
 ): Promise<GatsbyVideoInformation> {
-  const data = await workerPool.single.getVideoData(videoPath);
-  console.log("got data", data);
+  const data = await worker.single.getVideoData(videoPath);
   const videoStream = data.streams.find((s) => s.codec_type === "video");
   const audioStream = data.streams.find((s) => s.codec_type === "audio");
   if (!videoStream) {
@@ -96,7 +101,7 @@ export async function transformVideo(
 
   reporter.info(`${label}: Using ffmpeg to transform video ${inputFileName}`);
   const tempPublicFile = join(publicDir, `temp-${outputName}`);
-  await workerPool.single.runFfmpeg(inputName, tempPublicFile, options, label);
+  await worker.single.runFfmpeg(inputName, tempPublicFile, options, label);
   await rename(tempPublicFile, publicFile);
   await videoCache.addToCache(publicFile, outputName);
   reporter.info(`${label}: Used newly transformed file for ${inputFileName}`);

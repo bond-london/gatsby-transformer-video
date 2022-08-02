@@ -11,7 +11,7 @@ import {
 } from "./ffpmeg";
 import { GatsbyTransformedVideo, TransformArgs } from "./types";
 
-export async function createTransformedVideo(
+async function internalCreateTransformedVideo(
   source: Node,
   transformArgs: TransformArgs,
   context: IGatsbyResolverContext<Node, TransformArgs>,
@@ -74,4 +74,23 @@ function createLabel(
     : "";
   const audioInfo = transformArgs.muted ? " muted" : "";
   return `${stage}: ${details.name}${widthInfo}${audioInfo}`;
+}
+
+const transformMap = new Map<string, Promise<GatsbyTransformedVideo>>();
+export function createTransformedVideo(
+  source: Node,
+  transformArgs: TransformArgs,
+  context: IGatsbyResolverContext<Node, TransformArgs>,
+  args: NodePluginArgs
+): Promise<GatsbyTransformedVideo> {
+  const key = source.internal.contentDigest + source.id;
+  const existing = transformMap.get(key);
+  if (existing) return existing;
+  const promise = new Promise<GatsbyTransformedVideo>((resolve, reject) => {
+    internalCreateTransformedVideo(source, transformArgs, context, args)
+      .then(resolve)
+      .catch(reject);
+  });
+  transformMap.set(key, promise);
+  return promise;
 }

@@ -2,6 +2,7 @@ import pathToFfmpeg from "ffmpeg-static";
 import { path as pathToFfprobe } from "ffprobe-static";
 
 import ffmpeg, { FfprobeData } from "fluent-ffmpeg";
+import { reporter } from "gatsby-cli/lib/reporter/reporter";
 
 function createCommandForVideo(videoPath: string) {
   const command = ffmpeg({ source: videoPath, logger: console });
@@ -28,16 +29,26 @@ export async function runFfmpeg(
 ) {
   return new Promise<void>((resolve, reject) => {
     let lastPercent = 0;
+    const activity = reporter.createProgress(label, 100);
     const command = createCommandForVideo(input)
       .addOutputOption(options)
       //   .on("start", console.log)
-      .on("error", reject)
-      .on("end", resolve)
+      .on("error", (args) => {
+        activity.setStatus("Errored");
+        activity.end();
+        reject(args);
+      })
+      .on("end", () => {
+        activity.setStatus("Completed");
+        activity.end();
+        resolve();
+      })
       .on("progress", (progress: ProgressInformation) => {
-        if (progress.percent > lastPercent + 10) {
-          const percent = Math.floor(progress.percent);
-          console.log(`${label}: Progress - ${percent}%`);
-          lastPercent = progress.percent;
+        const percent = Math.floor(progress.percent);
+        if (percent > lastPercent) {
+          const delta = percent - lastPercent;
+          activity.tick(delta);
+          lastPercent = percent;
         }
       })
       .output(output);

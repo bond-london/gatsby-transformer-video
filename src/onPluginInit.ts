@@ -15,8 +15,6 @@ export async function onPluginInit(
     videoCacheFolder,
   }: PluginOptions
 ) {
-  reporter.info("Initialising bond transformer video");
-
   const cacheFolder = join(process.cwd(), videoCacheFolder);
 
   if (useRemoteCache) {
