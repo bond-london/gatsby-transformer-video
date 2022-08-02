@@ -1,6 +1,6 @@
 {
   "name": "@bond-london/gatsby-transformer-video",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "Transform video files",
   "repository": "https://github.com/bond-london/gatsby-transformer-video",
   "author": "Nick Randell <nick.randell@bond.fi>",
@@ -38,8 +38,8 @@
   },
   "peerDependencies": {
     "gatsby": "^4.x",
-    "gatsby-source-filesystem": "^4.x",
-    "gatsby-cli": "^4.x"
+    "gatsby-cli": "^4.x",
+    "gatsby-source-filesystem": "^4.x"
   },
   "devDependencies": {
     "@types/ffmpeg-static": "^3.0.1",
