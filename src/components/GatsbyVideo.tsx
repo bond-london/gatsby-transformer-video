@@ -13,8 +13,8 @@ export const GatsbyVideo: React.FC<
   {
     videoData: GatsbyTransformedVideo;
     noPoster?: boolean;
-    objectFit: CSSProperties["objectFit"];
-    objectPosition: CSSProperties["objectPosition"];
+    objectFit?: CSSProperties["objectFit"];
+    objectPosition?: CSSProperties["objectPosition"];
   } & React.DetailedHTMLProps<
     React.VideoHTMLAttributes<HTMLVideoElement>,
     HTMLVideoElement
