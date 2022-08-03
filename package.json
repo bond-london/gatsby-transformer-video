@@ -1,6 +1,6 @@
 {
   "name": "@bond-london/gatsby-transformer-video",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "description": "Transform video files",
   "repository": "https://github.com/bond-london/gatsby-transformer-video",
   "author": "Nick Randell <nick.randell@bond.fi>",
