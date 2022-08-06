@@ -3,11 +3,12 @@ import { RemoteCache } from "./remoteCache";
 import { PluginOptions } from "./types";
 import { Cache } from "./cache";
 import { join } from "path";
+import { setActions } from "./ffpmeg";
 
 export let videoCache: Cache;
 
 export async function onPluginInit(
-  { reporter }: NodePluginArgs,
+  { reporter, actions }: NodePluginArgs,
   {
     useRemoteCache,
     remoteConnectionString,
@@ -16,6 +17,7 @@ export async function onPluginInit(
   }: PluginOptions
 ) {
   const cacheFolder = join(process.cwd(), videoCacheFolder);
+  setActions(actions);
 
   if (useRemoteCache) {
     if (!remoteConnectionString || !remoteContainer) {

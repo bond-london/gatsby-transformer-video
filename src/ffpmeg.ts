@@ -1,27 +1,51 @@
-import { join, basename } from "path";
+import { join, dirname, basename } from "path";
 import { ensureDir, rename } from "fs-extra";
 
-import { FileSystemNode } from "gatsby-source-filesystem";
-import { NodePluginArgs } from "gatsby";
+import type { Actions, NodePluginArgs, Reporter } from "gatsby";
 import { GatsbyVideoInformation } from "./types";
 import { videoCache } from "./onPluginInit";
-import { WorkerPool } from "gatsby-worker";
+import {
+  SingleVideoProcessingArgs,
+  VideoProcessingArgs,
+  VIDEO_PROCESSING_JOB_NAME,
+} from "./gatsby-worker";
+import { FfprobeData } from "fluent-ffmpeg";
 
-type FfmpegWorkerPool = WorkerPool<typeof import("./worker")>;
-function createWorker(): FfmpegWorkerPool {
-  const worker: FfmpegWorkerPool = new WorkerPool(require.resolve("./worker"), {
-    numWorkers: 1,
-    silent: false,
-  });
-  return worker;
+let actions: Actions;
+
+export function setActions(_actions: Actions) {
+  actions = _actions;
 }
 
-const worker = createWorker();
+async function createJob(
+  inputFileName: string,
+  outputDir: string,
+  args: VideoProcessingArgs,
+  reporter: Reporter
+) {
+  if (!actions) {
+    return reporter.panic("Actions are not setup");
+  }
+
+  const result = actions.createJobV2({
+    name: VIDEO_PROCESSING_JOB_NAME,
+    inputPaths: [inputFileName],
+    outputDir,
+    args: args as Record<string, unknown>,
+  });
+  return result;
+}
 
 export async function getVideoInformation(
-  videoPath: string
+  videoPath: string,
+  reporter: Reporter
 ): Promise<GatsbyVideoInformation> {
-  const data = await worker.single.getVideoData(videoPath);
+  const data = (await createJob(
+    videoPath,
+    dirname(videoPath),
+    {},
+    reporter
+  )) as FfprobeData;
   const videoStream = data.streams.find((s) => s.codec_type === "video");
   const audioStream = data.streams.find((s) => s.codec_type === "audio");
   if (!videoStream) {
@@ -72,57 +96,72 @@ export async function transformVideo(
   inputName: string,
   inputDigest: string,
   name: string,
-  ext: string,
-  options: string[],
-  label: string
+  videos: {
+    key: string;
+    ext: string;
+    options: string[];
+    label: string;
+  }[]
 ) {
   const { reporter, createContentDigest, pathPrefix } = args;
-  const digestObject = {
-    parent: inputDigest,
-    options,
-  };
-  const digest = createContentDigest(digestObject);
-  const outputName = `${name}-${digest}${ext}`;
-  const publicDir = join(process.cwd(), "public", "static", inputDigest);
-  const publicFile = join(publicDir, outputName);
-  const publicRelativeUrl = `${pathPrefix}/static/${inputDigest}/${outputName}`;
+  const instances: SingleVideoProcessingArgs[] = [];
+  const jobInfo = [];
+  const results: {
+    [key: string]: { publicFile: string; publicRelativeUrl: string };
+  } = {};
 
   const inputFileName = basename(inputName);
-
-  reporter.verbose(`${label}: Transforming video`);
+  const publicDir = join(process.cwd(), "public", "static", inputDigest);
   await ensureDir(publicDir);
-  try {
-    await videoCache.getFromCache(outputName, publicFile);
-    reporter.verbose(`${label}: Used already cached file`);
-    return { publicFile, publicRelativeUrl };
-  } catch (err) {
-    /* do nothing as this basically means the file wasn't there */
+  for (const { key, ext, options, label } of videos) {
+    const digestObject = {
+      parent: inputDigest,
+      options,
+    };
+    const digest = createContentDigest(digestObject);
+    const outputName = `${name}-${digest}${ext}`;
+    const publicFile = join(publicDir, outputName);
+    const publicRelativeUrl = `${pathPrefix}/static/${inputDigest}/${outputName}`;
+
+    reporter.verbose(`${label}: Transforming video`);
+    try {
+      await videoCache.getFromCache(outputName, publicFile);
+      reporter.verbose(`${label}: Used already cached file`);
+      results[key] = { publicFile, publicRelativeUrl };
+      continue;
+    } catch (err) {
+      /* do nothing as this basically means the file wasn't there */
+    }
+
+    reporter.info(`${label}: Using ffmpeg to transform video ${inputFileName}`);
+    const tempName = `temp-${outputName}`;
+    const tempPublicFile = join(publicDir, tempName);
+    instances.push({ options, outputName: tempName, label });
+    jobInfo.push({
+      tempPublicFile,
+      publicFile,
+      outputName,
+      publicRelativeUrl,
+      key,
+    });
+  }
+  await createJob(inputName, publicDir, { instances }, reporter);
+
+  for (const {
+    tempPublicFile,
+    publicFile,
+    outputName,
+    publicRelativeUrl,
+    key,
+  } of jobInfo) {
+    try {
+      await rename(tempPublicFile, publicFile);
+    } catch {
+      // ignore
+    }
+    await videoCache.addToCache(publicFile, outputName);
+    results[key] = { publicFile, publicRelativeUrl };
   }
 
-  reporter.info(`${label}: Using ffmpeg to transform video ${inputFileName}`);
-  const tempPublicFile = join(publicDir, `temp-${outputName}`);
-  await worker.single.runFfmpeg(inputName, tempPublicFile, options, label);
-  await rename(tempPublicFile, publicFile);
-  await videoCache.addToCache(publicFile, outputName);
-  reporter.info(`${label}: Used newly transformed file for ${inputFileName}`);
-
-  return { publicFile, publicRelativeUrl };
-}
-
-export function transformVideoNode(
-  args: NodePluginArgs,
-  input: FileSystemNode,
-  ext: string,
-  options: string[],
-  label: string
-) {
-  return transformVideo(
-    args,
-    input.absolutePath,
-    input.internal.contentDigest,
-    input.name,
-    ext,
-    options,
-    label
-  );
+  return results;
 }

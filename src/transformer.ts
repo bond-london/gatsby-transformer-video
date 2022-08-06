@@ -7,7 +7,6 @@ import {
   createWebmVideoTransform,
   getVideoInformation,
   transformVideo,
-  transformVideoNode,
 } from "./ffpmeg";
 import { GatsbyTransformedVideo, TransformArgs } from "./types";
 
@@ -30,30 +29,56 @@ async function internalCreateTransformedVideo(
 
   const { width, muted } = transformArgs;
 
-  const mp4 = await transformVideoNode(
+  const information = await transformVideo(
     args,
-    details,
-    ".mp4",
-    createMp4VideoTransform(width, muted),
-    createLabel(details, transformArgs, "mp4")
+    details.absolutePath,
+    details.internal.contentDigest,
+    details.name,
+    [
+      {
+        key: "mp4",
+        ext: ".mp4",
+        options: createMp4VideoTransform(width, muted),
+        label: createLabel(details, transformArgs, "mp4"),
+      },
+      {
+        key: "webm",
+        ext: ".webm",
+        options: createWebmVideoTransform(width, muted),
+        label: createLabel(details, transformArgs, "webm"),
+      },
+    ]
   );
-  const webm = await transformVideoNode(
-    args,
-    details,
-    ".webm",
-    createWebmVideoTransform(width, muted),
-    createLabel(details, transformArgs, "webm")
-  );
-  const poster = await transformVideo(
+  const { mp4, webm } = information;
+  // const mp4 = await transformVideoNode(
+  //   args,
+  //   details,
+  //   ".mp4",
+  //   createMp4VideoTransform(width, muted),
+  //   createLabel(details, transformArgs, "mp4")
+  // );
+  // const webm = await transformVideoNode(
+  //   args,
+  //   details,
+  //   ".webm",
+  //   createWebmVideoTransform(width, muted),
+  //   createLabel(details, transformArgs, "webm")
+  // );
+  const { poster } = await transformVideo(
     args,
     webm.publicFile,
     details.internal.contentDigest,
     details.name,
-    ".jpg",
-    createScreenshotOptions(),
-    createLabel(details, transformArgs, "poster")
+    [
+      {
+        key: "poster",
+        ext: ".jpg",
+        options: createScreenshotOptions(),
+        label: createLabel(details, transformArgs, "poster"),
+      },
+    ]
   );
-  const info = await getVideoInformation(mp4.publicFile);
+  const info = await getVideoInformation(mp4.publicFile, reporter);
 
   const result = {
     ...info,

@@ -9,7 +9,7 @@ type ResolverArgs = {
 };
 
 export function createResolvers(args: CreateResolversArgs) {
-  const { createResolvers } = args;
+  const { createResolvers, reporter } = args;
 
   createResolvers({
     File: {
@@ -31,7 +31,8 @@ export function createResolvers(args: CreateResolversArgs) {
             info
           )) as GatsbyVideoInformation;
           const videoInformation = await getVideoInformation(
-            source.absolutePath
+            source.absolutePath,
+            reporter
           );
 
           return {

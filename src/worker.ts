@@ -20,8 +20,7 @@ interface ProgressInformation {
   percent: number;
 }
 
-// eslint-disable-next-line import/no-unused-modules
-export async function runFfmpeg(
+async function runFfmpeg(
   input: string,
   output: string,
   options: string[],
@@ -56,7 +55,24 @@ export async function runFfmpeg(
   });
 }
 
-// eslint-disable-next-line import/no-unused-modules
+export async function workerTransformVideo(
+  inputName: string,
+  instances: {
+    output: string;
+    options: string[];
+    label: string;
+  }[]
+) {
+  for (const instance of instances) {
+    await runFfmpeg(
+      inputName,
+      instance.output,
+      instance.options,
+      instance.label
+    );
+  }
+}
+
 export async function getVideoData(videoPath: string): Promise<FfprobeData> {
   const command = createCommandForVideo(videoPath);
   return new Promise<FfprobeData>((resolve, reject) => {
