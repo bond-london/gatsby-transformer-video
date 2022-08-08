@@ -28,6 +28,7 @@ export const GatsbyVideo: React.FC<
     objectPosition,
     style,
     className,
+    controls = false,
     ...otherProps
   } = allProps;
   const realStyle = useMemo(() => {
@@ -49,6 +50,7 @@ export const GatsbyVideo: React.FC<
       height={videoData.height}
       poster={noPoster ? undefined : videoData.poster}
       className={className}
+      controls={controls}
     >
       <source type="video/webm" src={videoData.webm} />
       <source type="video/mp4" src={videoData.mp4} />
