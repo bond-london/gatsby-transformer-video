@@ -44,13 +44,13 @@ export const GatsbyVideo: React.FC<
     // eslint-disable-next-line jsx-a11y/media-has-caption
     <video
       muted={!videoData.hasAudio || muted}
+      controls={controls}
       {...otherProps}
       style={realStyle}
       width={videoData.width}
       height={videoData.height}
       poster={noPoster ? undefined : videoData.poster}
       className={className}
-      controls={controls}
     >
       <source type="video/webm" src={videoData.webm} />
       <source type="video/mp4" src={videoData.mp4} />
