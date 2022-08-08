@@ -9,6 +9,7 @@
   "license": "MIT",
   "files": [
     "gatsby-node.js",
+    "gatsby-worker.js",
     "dist"
   ],
   "keywords": [
