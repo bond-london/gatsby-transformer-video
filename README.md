@@ -1,3 +1,5 @@
+Merged with https://github.com/bond-london/bond-theme-development
+
 # Gatsby transformer video
 
 This attempts to be to videos what gatsby-plugin-image is to images!
